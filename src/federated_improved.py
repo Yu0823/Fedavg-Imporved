@@ -76,7 +76,7 @@ if __name__ == '__main__':
     print_every = 1
     val_loss_pre, counter = 0, 0
     abnormal_list = []
-    node_dis_last = {}
+    node_dis_last = {3: 0.0001}
 
     # 外层循环表示一共联邦学习多少轮
     for epoch in tqdm(range(args.epochs)):
@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
         # update global weights 运用设计的算法进行聚合 得到此轮的中心模型权重并更新异常节点列表
         global_weights, abnormal_list = global_weights_aggregate(center_weights, local_weights,
-                                                                 abnormal_list, node_dis_last, args.dis_max,
+                                                                 idxs_users, abnormal_list, node_dis_last, args.dis_max,
                                                                  args.dis_inc_max)
 
         # update global weights 将上面聚合的权重添加到模型中

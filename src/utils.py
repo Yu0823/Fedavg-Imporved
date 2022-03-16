@@ -85,10 +85,11 @@ def average_weights(w):
     return w_avg
 
 
-def global_weights_aggregate(w_center, w, abnormal_list, node_dis_last, distance_max, dis_inc_max):
+def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_last, distance_max, dis_inc_max):
     """
     :param w_center: the weight matrix of the center model
     :param w: the list of weight matrix of of other nodes' model
+    :param idxs_nodes: the order list of nodes that need aggregate
     :param abnormal_list: the list of abnormal nodes
     :param node_dis_last: list of distance of a node model with center model in last round
     :param distance_max: the maximum threshold of the distance
@@ -112,21 +113,26 @@ def global_weights_aggregate(w_center, w, abnormal_list, node_dis_last, distance
 
     w_node = np.zeros(len(w))   # w_node存储初步权重
     for i in range(0, len(w)):
+        # 获取当前节点的真实序号
+        node_num = idxs_nodes[i]
+        with open('log_for_debug.txt', 'a') as file_object:
+            file_object.write("node_num:" + str(node_num))
         # 判断是否大于距离最大阈值 如果大于则将此节点标记为异常节点
         if distance[i] > distance_max:
-            abnormal_list.append(i)
+            # 加入异常节点名单
+            abnormal_list.append(node_num)
             w_node[i] = 0
             with open('log_for_debug.txt', 'a') as file_object:
-                file_object.write("!!!!!!!!!!!!")
+                file_object.write("!!!!!!!!!!!!\n")
         else:
-            if i in node_dis_last:
-                increase = distance[i] / node_dis_last[i]
+            if node_num in node_dis_last:
+                increase = distance[i] / node_dis_last[node_num]
                 # 判断此节点与上一轮相比较的距离增长是否大于阈值 如果大于则将此节点标记为异常节点
                 if increase > dis_inc_max:
-                    abnormal_list.append(i)
+                    abnormal_list.append(node_num)
                     w_node[i] = 0
                     with open('log_for_debug.txt', 'a') as file_object:
-                        file_object.write("!!!!!!!!!!!!")
+                        file_object.write("!!!!!!!!!!!!\n")
                 else:
                     # 完全一致 基本不可能出现
                     if distance[i] == 0:
@@ -141,7 +147,7 @@ def global_weights_aggregate(w_center, w, abnormal_list, node_dis_last, distance
                     w_node[i] = 1 / distance[i]
 
         # 把该节点本次训练的距离加入到字典中
-        node_dis_last[i] = distance[i]
+        node_dis_last[node_num] = distance[i]
 
     w_node_sum = w_node.sum()
 
@@ -150,9 +156,6 @@ def global_weights_aggregate(w_center, w, abnormal_list, node_dis_last, distance
         torch.zero_(w_final[key])
         for i in range(0, len(w)):
             w_final[key] = w_final[key] + w_node[i] / w_node_sum * w[i][key]
-        with open('log_for_debug.txt', 'a') as file_object:
-            file_object.write("w_final:" + key)
-            file_object.write(str(w_final[key]) + '\n')
 
     return w_final, abnormal_list
 

@@ -3,10 +3,12 @@ import numpy as np
 import utils
 
 if __name__ == '__main__':
-    a = [1, 2, 3, 4, 5]
-    b = [4, 1]
-    c = [i for i in a if i not in b]
-    print(c)
+    a = np.array([1, 2, 3, 4, 5])
+    print(a[0])
+    # a = [1, 2, 3, 4, 5]
+    # b = [4, 1]
+    # c = [i for i in a if i not in b]
+    # print(c)
     # a = torch.tensor([[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]])
     # b = torch.tensor([[1.0, 1.0, 1.0], [1.0, 2.0, 1.0], [1.0, 1.0, 3.0]])
     # c = torch.tensor([[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [1.0, 1.0, 3.0]])
