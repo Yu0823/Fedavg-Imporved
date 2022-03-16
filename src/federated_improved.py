@@ -11,7 +11,7 @@ from tensorboardX import SummaryWriter
 from options import args_parser
 from update import LocalUpdate, test_inference
 from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar
-from utils import get_dataset, average_weights, exp_details, global_weights_aggregate
+from utils import get_dataset, exp_details, global_weights_aggregate
 from update import center_update
 
 if __name__ == '__main__':
