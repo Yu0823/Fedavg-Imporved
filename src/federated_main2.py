@@ -98,9 +98,16 @@ if __name__ == '__main__':
             # 首先创建一个局部模型
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
-            # 这个训练节点对于自己的数据进行本地训练（一共--local_ep轮），得到
+            # # 这个训练节点对于自己的数据进行本地训练（一共--local_ep轮），得到
+            # w, loss = local_model.update_weights(
+            #     model=copy.deepcopy(global_model), global_round=epoch)
+
+            # 模拟异常节点
+            is_abnormal = False
+            if epoch == 1 and idx == 1:
+                is_abnormal = True
             w, loss = local_model.update_weights(
-                model=copy.deepcopy(global_model), global_round=epoch)
+                model=copy.deepcopy(global_model), global_round=epoch, is_abnormal=is_abnormal)
 
             # 这里得到的w是一个字典结构，因为有多层网络，w将每一层网络之间的权重都表示出来
             # 例如 （'conv2.weight', ...） ('conv2.bias', ...) ('fc2.weight', ...)等

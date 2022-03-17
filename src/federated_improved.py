@@ -119,7 +119,7 @@ if __name__ == '__main__':
             print('Global Round: {} Training on node {}:'.format(epoch, idx))
             # 模拟异常节点
             is_abnormal = False
-            if epoch == 0 and idx == 1:
+            if epoch == 1 and idx == 1:
                 is_abnormal = True
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model_before), global_round=epoch, is_abnormal=is_abnormal)
