@@ -3,6 +3,7 @@ from torch import nn
 from utils import get_dataset
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
+from sampling import get_center_dataset_minst
 
 
 class DatasetSplit(Dataset):
@@ -148,7 +149,7 @@ def test_inference(args, model, test_dataset):
 
 def center_update(global_model, args):
     device = 'cpu'
-    train_dataset, test_dataset, _ = get_dataset(args)  # 获取训练用的数据集
+    train_dataset, test_dataset, _ = get_dataset(args)  # 获取训练和测试用的数据集
     # Training
     # Set optimizer and criterion
     # 设置梯度下降策略和loss函数
@@ -159,7 +160,10 @@ def center_update(global_model, args):
         optimizer = torch.optim.Adam(global_model.parameters(), lr=args.lr,
                                      weight_decay=1e-4)
 
-    trainloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    # 根据需求确定中心辅助数据集大小
+    trainloader = DataLoader(DatasetSplit(train_dataset, get_center_dataset_minst(train_dataset, 1)),
+                             batch_size=64, shuffle=True)
+
     criterion = torch.nn.NLLLoss().to(device)
     epoch_loss = []
 
