@@ -72,7 +72,7 @@ class LocalUpdate(object):
                 images, labels = images.to(self.device), labels.to(self.device)
                 # 如果需要模拟异常情况 则将图片置为零矩阵
                 if is_abnormal:
-                    images = torch.zero_(images)
+                    images = torch.zeros_like(images)
                 model.zero_grad()
                 log_probs = model(images)
                 loss = self.criterion(log_probs, labels)

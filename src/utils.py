@@ -153,7 +153,7 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
 
     # 加权平均
     for key in w[0].keys():
-        torch.zero_(w_final[key])
+        torch.zeros_like(w_final[key])
         for i in range(0, len(w)):
             w_final[key] = w_final[key] + w_node[i] / w_node_sum * w[i][key]
 
