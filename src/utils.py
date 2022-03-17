@@ -4,6 +4,7 @@ import numpy as np
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
+from sampling import get_center_dataset_minst
 
 
 def get_dataset(args):
@@ -50,7 +51,6 @@ def get_dataset(args):
 
         train_dataset = datasets.MNIST(data_dir, train=True, download=True,
                                        transform=apply_transform)
-
         test_dataset = datasets.MNIST(data_dir, train=False, download=True,
                                       transform=apply_transform)
 

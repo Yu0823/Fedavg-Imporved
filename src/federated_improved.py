@@ -76,7 +76,7 @@ if __name__ == '__main__':
     print_every = 1
     val_loss_pre, counter = 0, 0
     abnormal_list = []
-    node_dis_last = {3: 0.0001}
+    node_dis_last = {}
 
     # 外层循环表示一共联邦学习多少轮
     for epoch in tqdm(range(args.epochs)):
@@ -117,8 +117,12 @@ if __name__ == '__main__':
 
             # 这个训练节点对于自己的数据进行本地训练（一共--local_ep轮），得到
             print('Global Round: {} Training on node {}:'.format(epoch, idx))
+            # 模拟异常节点
+            is_abnormal = False
+            if epoch == 0 and idx == 1:
+                is_abnormal = True
             w, loss = local_model.update_weights(
-                model=copy.deepcopy(global_model_before), global_round=epoch)
+                model=copy.deepcopy(global_model_before), global_round=epoch, is_abnormal=is_abnormal)
 
             # 这里得到的w是一个字典结构，因为有多层网络，w将每一层网络之间的权重都表示出来
             # 例如 （'conv2.weight', ...） ('conv2.bias', ...) ('fc2.weight', ...)等

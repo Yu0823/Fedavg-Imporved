@@ -1,5 +1,3 @@
-
-
 import torch
 from torch import nn
 from utils import get_dataset
@@ -24,6 +22,7 @@ class DatasetSplit(Dataset):
 
 
 class LocalUpdate(object):
+
     def __init__(self, args, dataset, idxs, logger):
         self.args = args
         self.logger = logger
@@ -40,20 +39,20 @@ class LocalUpdate(object):
         Returns train, validation and test dataloaders for a given dataset
         and user indexes.
         """
-        # split indexes for train, validation, and test (80, 10, 10)
-        idxs_train = idxs[:int(0.8*len(idxs))]
-        idxs_val = idxs[int(0.8*len(idxs)):int(0.9*len(idxs))]
-        idxs_test = idxs[int(0.9*len(idxs)):]
+        # split indexes for train, validation, and test (80, 10, 10) 按比例分割数据集
+        idxs_train = idxs[:int(0.8 * len(idxs))]
+        idxs_val = idxs[int(0.8 * len(idxs)):int(0.9 * len(idxs))]
+        idxs_test = idxs[int(0.9 * len(idxs)):]
 
         trainloader = DataLoader(DatasetSplit(dataset, idxs_train),
                                  batch_size=self.args.local_bs, shuffle=True)
         validloader = DataLoader(DatasetSplit(dataset, idxs_val),
-                                 batch_size=int(len(idxs_val)/10), shuffle=False)
+                                 batch_size=int(len(idxs_val) / 10), shuffle=False)
         testloader = DataLoader(DatasetSplit(dataset, idxs_test),
-                                batch_size=int(len(idxs_test)/10), shuffle=False)
+                                batch_size=int(len(idxs_test) / 10), shuffle=False)
         return trainloader, validloader, testloader
 
-    def update_weights(self, model, global_round):
+    def update_weights(self, model, global_round, is_abnormal=False):
         # Set mode to train model
         model.train()
         epoch_loss = []
@@ -71,7 +70,9 @@ class LocalUpdate(object):
             batch_loss = []
             for batch_idx, (images, labels) in enumerate(self.trainloader):
                 images, labels = images.to(self.device), labels.to(self.device)
-
+                # 如果需要模拟异常情况 则将图片置为零矩阵
+                if is_abnormal:
+                    images = torch.zero_(images)
                 model.zero_grad()
                 log_probs = model(images)
                 loss = self.criterion(log_probs, labels)
@@ -82,10 +83,10 @@ class LocalUpdate(object):
                     print('Node Model Training - Local Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                         iter, batch_idx * len(images),
                         len(self.trainloader.dataset),
-                        100. * batch_idx / len(self.trainloader), loss.item()))
+                              100. * batch_idx / len(self.trainloader), loss.item()))
                 self.logger.add_scalar('loss', loss.item())
                 batch_loss.append(loss.item())
-            epoch_loss.append(sum(batch_loss)/len(batch_loss))
+            epoch_loss.append(sum(batch_loss) / len(batch_loss))
 
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
@@ -110,7 +111,7 @@ class LocalUpdate(object):
             correct += torch.sum(torch.eq(pred_labels, labels)).item()
             total += len(labels)
         # print("Correct:", correct, "Total:", total)
-        accuracy = correct/total
+        accuracy = correct / total
         return accuracy, loss
 
 
@@ -180,10 +181,11 @@ def center_update(global_model, args):
             # 记录损失函数值
             batch_loss.append(loss.item())
 
+            # 打印训练信息
             if batch_idx % 200 == 0:
                 print('Center Model Training - Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(images), len(trainloader.dataset),
-                    100. * batch_idx / len(trainloader), loss.item()))
+                           100. * batch_idx / len(trainloader), loss.item()))
 
         loss_avg = sum(batch_loss) / len(batch_loss)
         print('\nCenter Train loss:', loss_avg)

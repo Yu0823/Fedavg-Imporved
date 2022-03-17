@@ -1,7 +1,20 @@
-
 import numpy as np
 from torchvision import datasets, transforms
 
+# 用于拆分数据集到各个节点
+
+
+def get_center_dataset_minst(dataset, factor):
+    """
+    Sample I.I.D. data from MNIST dataset as center dataset
+    :param dataset:
+    :param size:
+    :return:
+    """
+    center_num = int(len(dataset) * factor)
+    all_idxs = [i for i in range(len(dataset))]
+    center_idxs = set(np.random.choice(all_idxs, center_num, replace=False))
+    return center_idxs
 
 def mnist_iid(dataset, num_users):
     """
