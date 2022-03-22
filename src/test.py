@@ -1,10 +1,11 @@
 import torch
 import numpy as np
 import utils
+import pickle
 
 if __name__ == '__main__':
-    a = np.array([1, 2, 3, 4, 5])
-    print(a[0])
+    data = pickle.load(open('../save/objects/mnist_cnn_10_C[1.0]_iid[0]_E[5]_B[10].pkl', 'rb'))  # 记得加上'rb'
+    print(data)
     # a = [1, 2, 3, 4, 5]
     # b = [4, 1]
     # c = [i for i in a if i not in b]

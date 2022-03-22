@@ -114,8 +114,6 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
     for i in range(0, len(w)):
         # 获取当前节点的真实序号
         node_num = idxs_nodes[i]
-        with open('log_for_debug.txt', 'a') as file_object:
-            file_object.write("node_num:" + str(node_num))
         # 判断是否大于距离最大阈值 如果大于则将此节点标记为异常节点
         if distance[i] > distance_max:
             # 加入异常节点名单
@@ -152,7 +150,7 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
 
     # 加权平均
     for key in w[0].keys():
-        torch.zeros_like(w_final[key])
+        w_final[key] = torch.zeros_like(w_final[key])
         for i in range(0, len(w)):
             w_final[key] = w_final[key] + w_node[i] / w_node_sum * w[i][key]
 

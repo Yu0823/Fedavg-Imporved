@@ -23,6 +23,10 @@ if __name__ == '__main__':
     logger = SummaryWriter('../logs')
 
     args = args_parser()
+    record_filename = '../save/records/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_{}.txt'. \
+        format(args.dataset, args.model, args.epochs, args.frac, args.iid,
+               args.local_ep, args.local_bs, time.time())
+
     exp_details(args)
 
     # if args.gpu_id:
@@ -90,6 +94,11 @@ if __name__ == '__main__':
         m = max(int(args.frac * args.num_users), 1)
         # 随机抽取
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        with open(record_filename, 'a') as file_object:
+            file_object.write("epoch:")
+            file_object.write(str(epoch) + '\n')
+            file_object.write("idxs_users:")
+            file_object.write(str(idxs_users) + '\n')
 
         # 对于每一个抽取到的训练节点
         for idx in idxs_users:
@@ -104,8 +113,14 @@ if __name__ == '__main__':
 
             # 模拟异常节点
             is_abnormal = False
-            if epoch == 1 and idx == 1:
+            if epoch >= 3 and idx == 0:
                 is_abnormal = True
+                with open(record_filename, 'a') as file_object:
+                    file_object.write("abnormal generate:")
+                    file_object.write("epoch:")
+                    file_object.write(str(epoch) + " ")
+                    file_object.write("node:")
+                    file_object.write(str(idx) + '\n')
             w, loss = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch, is_abnormal=is_abnormal)
 
@@ -158,11 +173,10 @@ if __name__ == '__main__':
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
 
-            # filename = 'federal_weight.txt'
-            # with open(filename, 'a') as file_object:
-            #     file_object.write("\n\n\nepoch: " + str(epoch) +"\n\n\n")
-            #     file_object.write(str(global_weights))
-            #     file_object.write("\n\n\n")
+            with open(record_filename, 'a') as file_object:
+                file_object.write(f' \nAvg Training Stats after {epoch + 1} global rounds:\n')
+                file_object.write(f'Training Loss : {np.mean(np.array(train_loss))}  ')
+                file_object.write('Train Accuracy: {:.2f}% \n'.format(100 * train_accuracy[-1]))
 
     # Test inference after completion of training
     # filename = 'federal_weight.txt'
@@ -177,6 +191,10 @@ if __name__ == '__main__':
     print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
+    with open(record_filename, 'a') as file_object:
+        file_object.write("test_accuracy:")
+        file_object.write(str(100 * test_acc) + '%\n')
+
     # Saving the objects train_loss and train_accuracy:
     # 将本次训练的准确率和loss写入到文件中持久化
     file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
@@ -185,6 +203,12 @@ if __name__ == '__main__':
 
     with open(file_name, 'wb') as f:
         pickle.dump([train_loss, train_accuracy], f)
+
+    with open(record_filename, 'a') as file_object:
+        file_object.write("train_loss:")
+        file_object.write(str(train_loss) + '\n')
+        file_object.write("train_accuracy:")
+        file_object.write(str(train_accuracy) + '\n')
 
     print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
 

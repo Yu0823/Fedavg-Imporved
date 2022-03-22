@@ -7,7 +7,7 @@ def args_parser():
     parser = argparse.ArgumentParser()
 
     # federated arguments (Notation for the arguments followed from paper)
-    parser.add_argument('--dis_max', type=float, default=100,
+    parser.add_argument('--dis_max', type=float, default=1000,
                         help="the maximum threshold of the distance")
     parser.add_argument('--dis_inc_max', type=float, default=10,
                         help="the maximum distance increase percentage threshold")
