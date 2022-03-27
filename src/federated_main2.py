@@ -94,6 +94,7 @@ if __name__ == '__main__':
         m = max(int(args.frac * args.num_users), 1)
         # 随机抽取
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        idxs_users = np.sort(idxs_users)
         with open(record_filename, 'a') as file_object:
             file_object.write("epoch:")
             file_object.write(str(epoch) + '\n')
@@ -113,15 +114,15 @@ if __name__ == '__main__':
 
             # 模拟异常节点
             is_abnormal = False
-            if epoch >= 3 and idx == 0:
+            if epoch >= 0 and (idx == 0 or idx == 1):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
-                    file_object.write("abnormal generate:")
+                    file_object.write("\nabnormal generate:")
                     file_object.write("epoch:")
                     file_object.write(str(epoch) + " ")
                     file_object.write("node:")
                     file_object.write(str(idx) + '\n')
-            w, loss = local_model.update_weights(
+            w, loss, _ = local_model.update_weights(
                 model=copy.deepcopy(global_model), global_round=epoch, is_abnormal=is_abnormal)
 
             # 这里得到的w是一个字典结构，因为有多层网络，w将每一层网络之间的权重都表示出来

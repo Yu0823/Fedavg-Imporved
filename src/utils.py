@@ -4,6 +4,7 @@ import numpy as np
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
+from options import args_parser
 
 
 def get_dataset(args):
@@ -78,21 +79,24 @@ def average_weights(w):
     # 相当于就是求平均值
     w_avg = copy.deepcopy(w[0])
     for key in w_avg.keys():
+        # for i in range(1, len(w)):
         for i in range(1, len(w)):
             w_avg[key] += w[i][key]
         w_avg[key] = torch.div(w_avg[key], len(w))
     return w_avg
 
 
-def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_last, distance_max, dis_inc_max):
+def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_list, node_dis_last, distance_max, dis_inc_max, record_filename):
     """
     :param w_center: the weight matrix of the center model
     :param w: the list of weight matrix of of other nodes' model
+    :param node_acc_dic: the dict contains acc of all nodes in train
     :param idxs_nodes: the order list of nodes that need aggregate
     :param abnormal_list: the list of abnormal nodes
     :param node_dis_last: list of distance of a node model with center model in last round
     :param distance_max: the maximum threshold of the distance
     :param dis_inc_max the maximum distance increase percentage threshold
+    :param record_filename the file to record training
     Returns the weights according to the distance.
     """
     # 遍历每个key 代表了不同层的权重 / 偏差
@@ -103,12 +107,20 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
         # 遍历每个节点上传的数据
         for i in range(0, len(w)):
             # 计算每个节点权重和中心节点权重的偏差
+            # with open(record_filename, 'a') as file_object:
+            #     file_object.write("\nw_center[" + str(key) + "]\n")
+            #     file_object.write(str(w_center[key]))
+            #     file_object.write("\nw[" + str(i) + "][" + str(key) + "]\n")
+            #     file_object.write(str(w[i][key]))
             distance[i] = distance[i] + get_distance_of_two_metrics(w_center[key], w[i][key])
-        with open('log_for_debug.txt', 'a') as file_object:
-            file_object.write("distance:")
-            file_object.write(str(distance) + '\n')
+            # with open(record_filename, 'a') as file_object:
+            #     file_object.write("\ndistance now: \n")
+            #     file_object.write(str(distance))
 
     # 至此已经计算完此轮的距离
+    # with open(record_filename, 'a') as file_object:
+    #     file_object.write("final distance:")
+    #     file_object.write(str(distance) + '\n')
 
     w_node = np.zeros(len(w))   # w_node存储初步权重
     for i in range(0, len(w)):
@@ -119,8 +131,8 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
             # 加入异常节点名单
             abnormal_list.append(node_num)
             w_node[i] = 0
-            with open('log_for_debug.txt', 'a') as file_object:
-                file_object.write("!!!!!!!!!!!!\n")
+            with open(record_filename, 'a') as file_object:
+                file_object.write("\n!!!!!!!!!!!!1\n")
         else:
             if node_num in node_dis_last:
                 increase = distance[i] / node_dis_last[node_num]
@@ -128,8 +140,8 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
                 if increase > dis_inc_max:
                     abnormal_list.append(node_num)
                     w_node[i] = 0
-                    with open('log_for_debug.txt', 'a') as file_object:
-                        file_object.write("!!!!!!!!!!!!\n")
+                    with open(record_filename, 'a') as file_object:
+                        file_object.write("!!!!!!!!!!!!2\n")
                 else:
                     # 完全一致 基本不可能出现
                     if distance[i] == 0:
@@ -146,13 +158,33 @@ def global_weights_aggregate(w_center, w, idxs_nodes, abnormal_list, node_dis_la
         # 把该节点本次训练的距离加入到字典中
         node_dis_last[node_num] = distance[i]
 
-    w_node_sum = w_node.sum()
+    w_node_sum_dis = w_node.sum()
+    # with open(record_filename, 'a') as file_object:
+    #     file_object.write("weights:")
+    #     file_object.write(str(w_node / w_node_sum_dis))
+
+    # 生成节点最终聚合的权重
+    node_acc_sum = 0
+    w_node_agg = []
+    for idx in node_acc_dic:
+        node_acc_sum = node_acc_sum + node_acc_dic[idx]
+
+    for idx in node_acc_dic:
+        w_node_agg.append(node_acc_dic[idx] / node_acc_sum)
+
+    with open(record_filename, 'a') as file_object:
+        file_object.write("final weights:")
+        file_object.write(str(w_node_agg))
 
     # 加权平均
     for key in w[0].keys():
         w_final[key] = torch.zeros_like(w_final[key])
         for i in range(0, len(w)):
-            w_final[key] = w_final[key] + w_node[i] / w_node_sum * w[i][key]
+            w_final[key] = w_final[key] + w[i][key] * w_node_agg[i]
+
+    with open(record_filename, 'a') as file_object:
+        file_object.write("final weight dic:")
+        file_object.write(str(w_node_agg))
 
     return w_final, abnormal_list
 

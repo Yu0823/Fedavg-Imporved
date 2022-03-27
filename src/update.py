@@ -4,6 +4,7 @@ from utils import get_dataset
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from sampling import get_center_dataset_minst
+import random
 
 
 class DatasetSplit(Dataset):
@@ -73,7 +74,11 @@ class LocalUpdate(object):
                 images, labels = images.to(self.device), labels.to(self.device)
                 # 如果需要模拟异常情况 则将图片置为零矩阵
                 if is_abnormal:
-                    images = torch.zeros_like(images)
+                    # images = torch.zeros_like(images)
+                    labels = torch.zeros_like(labels, dtype=int)
+                    # 把labels换成随机数
+                    for i in range(0, len(labels)):
+                        labels[i] = random.randrange(0, 9, 1)
                 model.zero_grad()
                 log_probs = model(images)
                 loss = self.criterion(log_probs, labels)
@@ -89,7 +94,7 @@ class LocalUpdate(object):
                 batch_loss.append(loss.item())
             epoch_loss.append(sum(batch_loss) / len(batch_loss))
 
-        return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
+        return model.state_dict(), sum(epoch_loss) / len(epoch_loss), model
 
     def inference(self, model):
         """ Returns the inference accuracy and loss.
@@ -194,3 +199,5 @@ def center_update(global_model, args):
         loss_avg = sum(batch_loss) / len(batch_loss)
         print('\nCenter Train loss:', loss_avg)
         epoch_loss.append(loss_avg)
+
+        return global_model.state_dict()

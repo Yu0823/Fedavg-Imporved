@@ -81,6 +81,7 @@ if __name__ == '__main__':
     val_loss_pre, counter = 0, 0
     abnormal_list = []
     node_dis_last = {}
+    node_acc_dict = {}
 
     # 外层循环表示一共联邦学习多少轮
     for epoch in tqdm(range(args.epochs)):
@@ -91,8 +92,11 @@ if __name__ == '__main__':
         # 训练中心节点的模型
         global_model_before = copy.deepcopy(global_model)
         global_model.train()
-        center_update(global_model, args)
-        center_weights = global_model.state_dict()
+        center_weights = center_update(global_model, args)
+        test_acc, test_loss = test_inference(args, global_model, test_dataset)
+        with open(record_filename, 'a') as file_object:
+            file_object.write("\n!!global_acc before:")
+            file_object.write(str(test_acc * 100) + '%\n')
 
         # frac是一个小数，代表每一次抽取训练节点的比例 如frac=0.1表示抽取10%的节点来训练
         num_user_need = max(int(args.frac * args.num_users), 1)
@@ -104,6 +108,7 @@ if __name__ == '__main__':
         if num_user_need > len(valid_users):
             num_user_need = len(valid_users)
         idxs_users = np.random.choice(valid_users, num_user_need, replace=False)
+        idxs_users = np.sort(idxs_users)
         with open(record_filename, 'a') as file_object:
             file_object.write("epoch:")
             file_object.write(str(epoch) + '\n')
@@ -122,16 +127,30 @@ if __name__ == '__main__':
             print('Global Round: {} Training on node {}:'.format(epoch, idx))
             # 模拟异常节点
             is_abnormal = False
-            if epoch >= 3 and idx == 0:
+            # with open(record_filename, 'a') as file_object:
+            #     file_object.write("\nnode now:")
+            #     file_object.write(str(idx) + '\n')
+            #     file_object.write("local weights length now: ")
+            #     file_object.write(str(len(local_weights)))
+            if epoch >= 0 and (idx == 0 or idx == 1):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
-                    file_object.write("abnormal generate:")
+                    file_object.write("\nabnormal generate:")
                     file_object.write("epoch:")
                     file_object.write(str(epoch) + " ")
                     file_object.write("node:")
                     file_object.write(str(idx) + '\n')
-            w, loss = local_model.update_weights(
+
+            w, loss, model_for_test = local_model.update_weights(
                 model=copy.deepcopy(global_model_before), global_round=epoch, is_abnormal=is_abnormal)
+
+            # 利用中心测试集进行测试 TODO: test_dataset生成
+            test_acc, test_loss = test_inference(args, model_for_test, test_dataset)
+            node_acc_dict[idx] = test_acc
+
+            with open(record_filename, 'a') as file_object:
+                file_object.write("\n!!local_acc of idx" + str(idx) + ":")
+                file_object.write(str(test_acc * 100) + '%\n')
 
             # 这里得到的w是一个字典结构，因为有多层网络，w将每一层网络之间的权重都表示出来
             # 例如 （'conv2.weight', ...） ('conv2.bias', ...) ('fc2.weight', ...)等
@@ -145,8 +164,8 @@ if __name__ == '__main__':
 
         # update global weights 运用设计的算法进行聚合 得到此轮的中心模型权重并更新异常节点列表
         global_weights, abnormal_list = global_weights_aggregate(center_weights, local_weights,
-                                                                 idxs_users, abnormal_list, node_dis_last, args.dis_max,
-                                                                 args.dis_inc_max)
+                                                                 node_acc_dict, idxs_users, abnormal_list, node_dis_last, args.dis_max,
+                                                                 args.dis_inc_max, record_filename)
 
         # update global weights 将上面聚合的权重添加到模型中
         global_model.load_state_dict(global_weights)
