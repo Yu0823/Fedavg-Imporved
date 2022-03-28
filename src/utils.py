@@ -86,7 +86,7 @@ def average_weights(w):
     return w_avg
 
 
-def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_list, node_dis_last, distance_max, dis_inc_max, record_filename):
+def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_list, node_dis_last, args, record_filename):
     """
     :param w_center: the weight matrix of the center model
     :param w: the list of weight matrix of of other nodes' model
@@ -94,89 +94,79 @@ def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_lis
     :param idxs_nodes: the order list of nodes that need aggregate
     :param abnormal_list: the list of abnormal nodes
     :param node_dis_last: list of distance of a node model with center model in last round
-    :param distance_max: the maximum threshold of the distance
-    :param dis_inc_max the maximum distance increase percentage threshold
+    :param args: the args list
     :param record_filename the file to record training
     Returns the weights according to the distance.
     """
     # 遍历每个key 代表了不同层的权重 / 偏差
-
     w_final = copy.deepcopy(w[0])
     distance = np.zeros(len(w))
     for key in w[0].keys():
         # 遍历每个节点上传的数据
         for i in range(0, len(w)):
-            # 计算每个节点权重和中心节点权重的偏差
-            # with open(record_filename, 'a') as file_object:
-            #     file_object.write("\nw_center[" + str(key) + "]\n")
-            #     file_object.write(str(w_center[key]))
-            #     file_object.write("\nw[" + str(i) + "][" + str(key) + "]\n")
-            #     file_object.write(str(w[i][key]))
             distance[i] = distance[i] + get_distance_of_two_metrics(w_center[key], w[i][key])
-            # with open(record_filename, 'a') as file_object:
-            #     file_object.write("\ndistance now: \n")
-            #     file_object.write(str(distance))
-
     # 至此已经计算完此轮的距离
-    # with open(record_filename, 'a') as file_object:
-    #     file_object.write("final distance:")
-    #     file_object.write(str(distance) + '\n')
 
-    w_node = np.zeros(len(w))   # w_node存储初步权重
+    node_dis_rev = [0 for i in range(0, len(idxs_nodes))]  # 用于存储距离的倒数
+    node_dis_rev_sum = 0
+    w_node_dis = [0 for i in range(0, len(idxs_nodes))]  # w_node_dis用于存储用距离计算出的权重
+    # 遍历得到距离的倒数
     for i in range(0, len(w)):
-        # 获取当前节点的真实序号
-        node_num = idxs_nodes[i]
-        # 判断是否大于距离最大阈值 如果大于则将此节点标记为异常节点
-        if distance[i] > distance_max:
-            # 加入异常节点名单
-            abnormal_list.append(node_num)
-            w_node[i] = 0
-            with open(record_filename, 'a') as file_object:
-                file_object.write("\n!!!!!!!!!!!!1\n")
+        if distance[i] == 0:
+            node_dis_rev[i] = 100
         else:
-            if node_num in node_dis_last:
-                increase = distance[i] / node_dis_last[node_num]
-                # 判断此节点与上一轮相比较的距离增长是否大于阈值 如果大于则将此节点标记为异常节点
-                if increase > dis_inc_max:
-                    abnormal_list.append(node_num)
-                    w_node[i] = 0
-                    with open(record_filename, 'a') as file_object:
-                        file_object.write("!!!!!!!!!!!!2\n")
-                else:
-                    # 完全一致 基本不可能出现
-                    if distance[i] == 0:
-                        w_node[i] = 10
-                    else:
-                        w_node[i] = 1 / distance[i]
-            else:
-                # 完全一致 基本不可能出现
-                if distance[i] == 0:
-                    w_node[i] = 10
-                else:
-                    w_node[i] = 1 / distance[i]
+            node_dis_rev[i] = 1 / distance[i]
+        node_dis_rev_sum = node_dis_rev_sum + node_dis_rev[i]
 
-        # 把该节点本次训练的距离加入到字典中
-        node_dis_last[node_num] = distance[i]
-
-    w_node_sum_dis = w_node.sum()
-    # with open(record_filename, 'a') as file_object:
-    #     file_object.write("weights:")
-    #     file_object.write(str(w_node / w_node_sum_dis))
+    # # 遍历得到关于距离的权重
+    # for i in range(0, len(w)):
+    #     w_node_dis[i] = node_dis_rev[i] / node_dis_rev_sum
+    #
+    # for i in range(0, len(w)):
+    #     # 获取当前节点的真实序号
+    #     node_num = idxs_nodes[i]
+    #     # 判断是否大于距离最大阈值 如果大于则将此节点标记为异常节点
+    #     if distance[i] > distance_max:
+    #         # 加入异常节点名单
+    #         abnormal_list.append(node_num)
+    #         w_node[i] = 0
+    #         with open(record_filename, 'a') as file_object:
+    #             file_object.write("\n!!!!!!!!!!!!1\n")
+    #     else:
+    #         if node_num in node_dis_last:
+    #             increase = distance[i] / node_dis_last[node_num]
+    #             # 判断此节点与上一轮相比较的距离增长是否大于阈值 如果大于则将此节点标记为异常节点
+    #             if increase > dis_inc_max:
+    #                 abnormal_list.append(node_num)
+    #                 w_node[i] = 0
+    #                 with open(record_filename, 'a') as file_object:
+    #                     file_object.write("!!!!!!!!!!!!2\n")
+    #             else:
+    #                 # 完全一致 基本不可能出现
+    #                 if distance[i] == 0:
+    #                     w_node[i] = 10
+    #                 else:
+    #                     w_node[i] = 1 / distance[i]
+    #         else:
+    #             # 完全一致 基本不可能出现
+    #             if distance[i] == 0:
+    #                 w_node[i] = 10
+    #             else:
+    #                 w_node[i] = 1 / distance[i]
+    #
+    #     # 把该节点本次训练的距离加入到字典中
+    #     node_dis_last[node_num] = distance[i]
 
     # 生成节点最终聚合的权重
     node_acc_sum = 0
     w_node_agg = []
-    for idx in node_acc_dic:
-        node_acc_sum = node_acc_sum + node_acc_dic[idx]
+    for i in range(0, len(w)):
+        node_acc_sum = node_acc_sum + node_acc_dic[idxs_nodes[i]]
 
-    for idx in node_acc_dic:
-        w_node_agg.append(node_acc_dic[idx] / node_acc_sum)
+    for i in range(0, len(w)):
+        w_node_agg.append((node_acc_dic[idxs_nodes[i]] / node_acc_sum) * (1 - args.k) + w_node_dis[i] * args.k)
 
-    with open(record_filename, 'a') as file_object:
-        file_object.write("final weights:")
-        file_object.write(str(w_node_agg))
-
-    # 加权平均
+    # 加权平均聚合
     for key in w[0].keys():
         w_final[key] = torch.zeros_like(w_final[key])
         for i in range(0, len(w)):

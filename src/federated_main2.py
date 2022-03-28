@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
             # 模拟异常节点
             is_abnormal = False
-            if epoch >= 0 and (idx == 0 or idx == 1):
+            if epoch >= 1000 and (idx == 0 or idx == 1 or idx == 2):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
                     file_object.write("\nabnormal generate:")
@@ -166,7 +166,6 @@ if __name__ == '__main__':
             print("Node Training Acc: ", acc, "Loss: ", loss)
         # 把这一轮聚合后的训练准确度添加到变量train_accuracy中
         train_accuracy.append(sum(list_acc)/len(list_acc))
-
 
         # print global training loss after every 'i' rounds
         if (epoch+1) % print_every == 0:

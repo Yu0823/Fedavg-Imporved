@@ -132,7 +132,7 @@ if __name__ == '__main__':
             #     file_object.write(str(idx) + '\n')
             #     file_object.write("local weights length now: ")
             #     file_object.write(str(len(local_weights)))
-            if epoch >= 0 and (idx == 0 or idx == 1):
+            if epoch >= 0 and (idx == 0 or idx == 1 or idx == 2):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
                     file_object.write("\nabnormal generate:")
@@ -162,10 +162,10 @@ if __name__ == '__main__':
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
-        # update global weights 运用设计的算法进行聚合 得到此轮的中心模型权重并更新异常节点列表
-        global_weights, abnormal_list = global_weights_aggregate(center_weights, local_weights,
-                                                                 node_acc_dict, idxs_users, abnormal_list, node_dis_last, args.dis_max,
-                                                                 args.dis_inc_max, record_filename)
+        # update global weights 运用设计的算法进行聚合 得到此轮的中心模型权重并更新异常节点列表 record_filename用于debug
+        global_weights, abnormal_list = global_weights_aggregate(center_weights, local_weights, node_acc_dict,
+                                                                 idxs_users, abnormal_list, node_dis_last,
+                                                                 args, record_filename)
 
         # update global weights 将上面聚合的权重添加到模型中
         global_model.load_state_dict(global_weights)
@@ -179,12 +179,12 @@ if __name__ == '__main__':
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
         global_model.eval()
+        # TODO 修改此处遍历逻辑
         for c in range(args.num_users):
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
             # 使用LocalUpdate对象中的inference方法来进行训练内的验证（类似于交叉验证，分配比例是8：1：1）
-            # TODO 这里发现每个user调用此方法进行验证后acc和loss都一样 因为验证的是同一个model？
-            acc, loss = local_model.inference(model=global_model_before)
+            acc, loss = local_model.inference(model=global_model)
             # print("Node Training Acc: ", acc, "Loss: ", loss)
             list_acc.append(acc)
             list_loss.append(loss)

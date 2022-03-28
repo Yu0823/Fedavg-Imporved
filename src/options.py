@@ -7,10 +7,12 @@ def args_parser():
     parser = argparse.ArgumentParser()
 
     # federated arguments (Notation for the arguments followed from paper)
-    parser.add_argument('--dis_max', type=float, default=1000,
-                        help="the maximum threshold of the distance")
-    parser.add_argument('--dis_inc_max', type=float, default=10,
-                        help="the maximum distance increase percentage threshold")
+    parser.add_argument('--k', type=float, default=0.1,
+                        help="the percentage of distance in weight counting")
+    parser.add_argument('--acc_min', type=float, default=15,
+                        help="the minimum threshold of the accuracy")
+    parser.add_argument('--acc_drop_max', type=float, default=50,
+                        help="the maximum accuracy drop percentage threshold")
     parser.add_argument('--epochs', type=int, default=10,
                         help="number of rounds of training")
     parser.add_argument('--num_users', type=int, default=100,
