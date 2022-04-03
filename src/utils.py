@@ -4,7 +4,6 @@ import numpy as np
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
-from options import args_parser
 
 
 def get_dataset(args):
@@ -86,17 +85,17 @@ def average_weights(w):
     return w_avg
 
 
-def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_list, node_dis_last, args, record_filename):
+def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_list, node_acc_last, args, record_filename):
     """
     :param w_center: the weight matrix of the center model
     :param w: the list of weight matrix of of other nodes' model
     :param node_acc_dic: the dict contains acc of all nodes in train
     :param idxs_nodes: the order list of nodes that need aggregate
     :param abnormal_list: the list of abnormal nodes
-    :param node_dis_last: list of distance of a node model with center model in last round
+    :param node_acc_last: list of accuracy of a node model with center model in last round
     :param args: the args list
     :param record_filename the file to record training
-    Returns the weights according to the distance.
+    Returns the weights the final model after execute the algorithm.
     """
     # 遍历每个key 代表了不同层的权重 / 偏差
     w_final = copy.deepcopy(w[0])
@@ -107,64 +106,52 @@ def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_lis
             distance[i] = distance[i] + get_distance_of_two_metrics(w_center[key], w[i][key])
     # 至此已经计算完此轮的距离
 
+    # 进行异常节点处理
+    for i in range(0, len(w)):
+        node_num = idxs_nodes[i]
+        if node_acc_dic[node_num] < args.acc_min:
+            # 加入异常节点名单
+            abnormal_list.append(node_num)
+            with open(record_filename, 'a') as file_object:
+                file_object.write("add node" + str(node_num) + " to abnormal list for node_acc value\n")
+        elif node_num in node_acc_last:
+            acc_drop = node_acc_last[node_num] - node_acc_dic[i]
+            if acc_drop > args.acc_drop_max:
+                abnormal_list.append(node_num)
+                with open(record_filename, 'a') as file_object:
+                    file_object.write("add node" + str(node_num) + " to abnormal list for node_acc drop\n")
+
     node_dis_rev = [0 for i in range(0, len(idxs_nodes))]  # 用于存储距离的倒数
     node_dis_rev_sum = 0
     w_node_dis = [0 for i in range(0, len(idxs_nodes))]  # w_node_dis用于存储用距离计算出的权重
+
     # 遍历得到距离的倒数
     for i in range(0, len(w)):
-        if distance[i] == 0:
-            node_dis_rev[i] = 100
-        else:
-            node_dis_rev[i] = 1 / distance[i]
-        node_dis_rev_sum = node_dis_rev_sum + node_dis_rev[i]
+        if idxs_nodes[i] not in abnormal_list:
+            if distance[i] == 0:
+                node_dis_rev[i] = 100
+            else:
+                node_dis_rev[i] = 1 / distance[i]
+            node_dis_rev_sum = node_dis_rev_sum + node_dis_rev[i]
 
-    # # 遍历得到关于距离的权重
-    # for i in range(0, len(w)):
-    #     w_node_dis[i] = node_dis_rev[i] / node_dis_rev_sum
-    #
-    # for i in range(0, len(w)):
-    #     # 获取当前节点的真实序号
-    #     node_num = idxs_nodes[i]
-    #     # 判断是否大于距离最大阈值 如果大于则将此节点标记为异常节点
-    #     if distance[i] > distance_max:
-    #         # 加入异常节点名单
-    #         abnormal_list.append(node_num)
-    #         w_node[i] = 0
-    #         with open(record_filename, 'a') as file_object:
-    #             file_object.write("\n!!!!!!!!!!!!1\n")
-    #     else:
-    #         if node_num in node_dis_last:
-    #             increase = distance[i] / node_dis_last[node_num]
-    #             # 判断此节点与上一轮相比较的距离增长是否大于阈值 如果大于则将此节点标记为异常节点
-    #             if increase > dis_inc_max:
-    #                 abnormal_list.append(node_num)
-    #                 w_node[i] = 0
-    #                 with open(record_filename, 'a') as file_object:
-    #                     file_object.write("!!!!!!!!!!!!2\n")
-    #             else:
-    #                 # 完全一致 基本不可能出现
-    #                 if distance[i] == 0:
-    #                     w_node[i] = 10
-    #                 else:
-    #                     w_node[i] = 1 / distance[i]
-    #         else:
-    #             # 完全一致 基本不可能出现
-    #             if distance[i] == 0:
-    #                 w_node[i] = 10
-    #             else:
-    #                 w_node[i] = 1 / distance[i]
-    #
-    #     # 把该节点本次训练的距离加入到字典中
-    #     node_dis_last[node_num] = distance[i]
+    # 计算出基于距离的权重
+    for i in range(0, len(w)):
+        if idxs_nodes[i] not in abnormal_list:
+            w_node_dis[i] = node_dis_rev[i] / node_dis_rev_sum
+
+    w_node_agg = []
 
     # 生成节点最终聚合的权重
     node_acc_sum = 0
-    w_node_agg = []
     for i in range(0, len(w)):
-        node_acc_sum = node_acc_sum + node_acc_dic[idxs_nodes[i]]
+        if idxs_nodes[i] not in abnormal_list:
+            node_acc_sum = node_acc_sum + node_acc_dic[idxs_nodes[i]]
 
     for i in range(0, len(w)):
-        w_node_agg.append((node_acc_dic[idxs_nodes[i]] / node_acc_sum) * (1 - args.k) + w_node_dis[i] * args.k)
+        if idxs_nodes[i] not in abnormal_list:
+            w_node_agg.append((node_acc_dic[idxs_nodes[i]] / node_acc_sum) * (1 - args.k) + w_node_dis[i] * args.k)
+        else:
+            w_node_agg.append(0)
 
     # 加权平均聚合
     for key in w[0].keys():
@@ -172,9 +159,19 @@ def global_weights_aggregate(w_center, w, node_acc_dic, idxs_nodes, abnormal_lis
         for i in range(0, len(w)):
             w_final[key] = w_final[key] + w[i][key] * w_node_agg[i]
 
+    test_sum = 0
+    for i in range(0, len(w)):
+        test_sum = test_sum + w_node_agg[i]
+
     with open(record_filename, 'a') as file_object:
-        file_object.write("final weight dic:")
+        file_object.write("w_node_dis_sum:")
+        file_object.write(str(node_dis_rev_sum))
+        file_object.write(" node_acc_sum:")
+        file_object.write(str(node_acc_sum))
+        file_object.write(" final weight dic:")
         file_object.write(str(w_node_agg))
+        file_object.write(" sum of weight:")
+        file_object.write(str(test_sum))
 
     return w_final, abnormal_list
 

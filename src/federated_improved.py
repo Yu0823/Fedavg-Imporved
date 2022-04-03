@@ -80,7 +80,7 @@ if __name__ == '__main__':
     print_every = 1
     val_loss_pre, counter = 0, 0
     abnormal_list = []
-    node_dis_last = {}
+    node_acc_last = {}
     node_acc_dict = {}
 
     # 外层循环表示一共联邦学习多少轮
@@ -112,8 +112,8 @@ if __name__ == '__main__':
         with open(record_filename, 'a') as file_object:
             file_object.write("epoch:")
             file_object.write(str(epoch) + '\n')
-            file_object.write("node_dis_last:")
-            file_object.write(str(node_dis_last) + '\n')
+            file_object.write("node_acc_last:")
+            file_object.write(str(node_acc_last) + '\n')
             file_object.write("idxs_users:")
             file_object.write(str(idxs_users) + '\n')
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             #     file_object.write(str(idx) + '\n')
             #     file_object.write("local weights length now: ")
             #     file_object.write(str(len(local_weights)))
-            if epoch >= 0 and (idx == 0 or idx == 1 or idx == 2):
+            if epoch >= 1000 and (idx == 0 or idx == 1 or idx == 2):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
                     file_object.write("\nabnormal generate:")
@@ -164,7 +164,7 @@ if __name__ == '__main__':
 
         # update global weights 运用设计的算法进行聚合 得到此轮的中心模型权重并更新异常节点列表 record_filename用于debug
         global_weights, abnormal_list = global_weights_aggregate(center_weights, local_weights, node_acc_dict,
-                                                                 idxs_users, abnormal_list, node_dis_last,
+                                                                 idxs_users, abnormal_list, node_acc_last,
                                                                  args, record_filename)
 
         # update global weights 将上面聚合的权重添加到模型中
@@ -179,7 +179,6 @@ if __name__ == '__main__':
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
         global_model.eval()
-        # TODO 修改此处遍历逻辑
         for c in range(args.num_users):
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
@@ -232,27 +231,27 @@ if __name__ == '__main__':
     print('\n Total Run Time: {0:0.4f}'.format(time.time() - start_time))
 
     # PLOTTING (optional)
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    matplotlib.use('Agg')
-
-    # Plot Loss curve
-    plt.figure()
-    plt.title('Training Loss vs Communication rounds')
-    plt.plot(range(len(train_loss)), train_loss, color='r')
-    plt.ylabel('Training loss')
-    plt.xlabel('Communication Rounds')
-    plt.savefig('../save/fed_ipv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
-                format(args.dataset, args.model, args.epochs, args.frac,
-                       args.iid, args.local_ep, args.local_bs))
-
-    # Plot Average Accuracy vs Communication rounds
-    plt.figure()
-    plt.title('Average Accuracy vs Communication rounds')
-    plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
-    plt.ylabel('Average Accuracy')
-    plt.xlabel('Communication Rounds')
-    plt.savefig('../save/fed_ipv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
-                format(args.dataset, args.model, args.epochs, args.frac,
-                       args.iid, args.local_ep, args.local_bs))
+    # import matplotlib
+    # import matplotlib.pyplot as plt
+    #
+    # matplotlib.use('Agg')
+    #
+    # # Plot Loss curve
+    # plt.figure()
+    # plt.title('Training Loss vs Communication rounds')
+    # plt.plot(range(len(train_loss)), train_loss, color='r')
+    # plt.ylabel('Training loss')
+    # plt.xlabel('Communication Rounds')
+    # plt.savefig('../save/fed_ipv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
+    #             format(args.dataset, args.model, args.epochs, args.frac,
+    #                    args.iid, args.local_ep, args.local_bs))
+    #
+    # # Plot Average Accuracy vs Communication rounds
+    # plt.figure()
+    # plt.title('Average Accuracy vs Communication rounds')
+    # plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
+    # plt.ylabel('Average Accuracy')
+    # plt.xlabel('Communication Rounds')
+    # plt.savefig('../save/fed_ipv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
+    #             format(args.dataset, args.model, args.epochs, args.frac,
+    #                    args.iid, args.local_ep, args.local_bs))

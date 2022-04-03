@@ -9,7 +9,7 @@ def args_parser():
     # federated arguments (Notation for the arguments followed from paper)
     parser.add_argument('--k', type=float, default=0.1,
                         help="the percentage of distance in weight counting")
-    parser.add_argument('--acc_min', type=float, default=15,
+    parser.add_argument('--acc_min', type=float, default=0.15,
                         help="the minimum threshold of the accuracy")
     parser.add_argument('--acc_drop_max', type=float, default=50,
                         help="the maximum accuracy drop percentage threshold")
