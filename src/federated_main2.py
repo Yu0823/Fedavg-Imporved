@@ -23,7 +23,7 @@ if __name__ == '__main__':
     logger = SummaryWriter('../logs')
 
     args = args_parser()
-    record_filename = '../save/records/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_{}.txt'. \
+    record_filename = '../save/records_new_ab/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_{}.txt'. \
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
                args.local_ep, args.local_bs, time.time())
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
             # 模拟异常节点
             is_abnormal = False
-            if epoch >= 1000 and (idx == 0 or idx == 1 or idx == 2):
+            if epoch >= 0 and (idx == 0 or idx == 1 or idx == 2):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
                     file_object.write("\nabnormal generate:")
@@ -137,10 +137,6 @@ if __name__ == '__main__':
 
         # update global weights
         # 中心服务器根据所有训练节点的权重来进行平均求解（逻辑就是求所有对应层参数的和的平均值）
-        '''
-        这里应该就是毕设可以突破的点
-        可以把平均求解替换成距离比对权重求解
-        '''
         global_weights = average_weights(local_weights)
 
         # update global weights
@@ -212,27 +208,27 @@ if __name__ == '__main__':
 
     print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
 
-    # PLOTTING (optional)
-    import matplotlib
-    import matplotlib.pyplot as plt
-    matplotlib.use('Agg')
-
-    # Plot Loss curve
-    plt.figure()
-    plt.title('Training Loss vs Communication rounds')
-    plt.plot(range(len(train_loss)), train_loss, color='r')
-    plt.ylabel('Training loss')
-    plt.xlabel('Communication Rounds')
-    plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
-                format(args.dataset, args.model, args.epochs, args.frac,
-                       args.iid, args.local_ep, args.local_bs))
-
-    # Plot Average Accuracy vs Communication rounds
-    plt.figure()
-    plt.title('Average Accuracy vs Communication rounds')
-    plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
-    plt.ylabel('Average Accuracy')
-    plt.xlabel('Communication Rounds')
-    plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
-                format(args.dataset, args.model, args.epochs, args.frac,
-                       args.iid, args.local_ep, args.local_bs))
+    # # PLOTTING (optional)
+    # import matplotlib
+    # import matplotlib.pyplot as plt
+    # matplotlib.use('Agg')
+    #
+    # # Plot Loss curve
+    # plt.figure()
+    # plt.title('Training Loss vs Communication rounds')
+    # plt.plot(range(len(train_loss)), train_loss, color='r')
+    # plt.ylabel('Training loss')
+    # plt.xlabel('Communication Rounds')
+    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_loss.png'.
+    #             format(args.dataset, args.model, args.epochs, args.frac,
+    #                    args.iid, args.local_ep, args.local_bs))
+    #
+    # # Plot Average Accuracy vs Communication rounds
+    # plt.figure()
+    # plt.title('Average Accuracy vs Communication rounds')
+    # plt.plot(range(len(train_accuracy)), train_accuracy, color='k')
+    # plt.ylabel('Average Accuracy')
+    # plt.xlabel('Communication Rounds')
+    # plt.savefig('../save/fed_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_acc.png'.
+    #             format(args.dataset, args.model, args.epochs, args.frac,
+    #                    args.iid, args.local_ep, args.local_bs))

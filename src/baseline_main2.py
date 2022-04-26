@@ -95,15 +95,15 @@ if __name__ == '__main__':
         print('\nTrain loss:', loss_avg)
         epoch_loss.append(loss_avg)
 
-    # Plot loss
-    plt.figure()
-    plt.plot(range(len(epoch_loss)), epoch_loss)
-    plt.xlabel('epochs')
-    plt.ylabel('Train loss')
-    plt.savefig('../save/nn_{}_{}_{}.png'.format(args.dataset, args.model,
-                                                 args.epochs))
-
-    # testing
-    test_acc, test_loss = test_inference(args, global_model, test_dataset)
-    print('Test on', len(test_dataset), 'samples')
-    print("Test Accuracy: {:.2f}%".format(100*test_acc))
+    # # Plot loss
+    # plt.figure()
+    # plt.plot(range(len(epoch_loss)), epoch_loss)
+    # plt.xlabel('epochs')
+    # plt.ylabel('Train loss')
+    # plt.savefig('../save/nn_{}_{}_{}.png'.format(args.dataset, args.model,
+    #                                              args.epochs))
+    #
+    # # testing
+    # test_acc, test_loss = test_inference(args, global_model, test_dataset)
+    # print('Test on', len(test_dataset), 'samples')
+    # print("Test Accuracy: {:.2f}%".format(100*test_acc))

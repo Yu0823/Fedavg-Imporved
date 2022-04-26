@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     # parse the running args
     args = args_parser()
-    record_filename = '../save/records/impv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_{}.txt'. \
+    record_filename = '../save/records_new_ab/impv_{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}]_{}.txt'. \
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
                args.local_ep, args.local_bs, time.time())
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             #     file_object.write(str(idx) + '\n')
             #     file_object.write("local weights length now: ")
             #     file_object.write(str(len(local_weights)))
-            if epoch >= 1000 and (idx == 0 or idx == 1 or idx == 2):
+            if epoch >= 0 and (idx == 0 or idx == 1 or idx == 2):
                 is_abnormal = True
                 with open(record_filename, 'a') as file_object:
                     file_object.write("\nabnormal generate:")
