@@ -1,26 +1,29 @@
-# Federated-Learning (PyTorch)
+# Federated-Learning-System
 
-Implementation of the vanilla federated learning paper : [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629).
+Based on https://github.com/AshwinRJ/Federated-Learning-PyTorch
 
+MNIST, Fashion MNIST and CIFAR10 are supported (both IID and non-IID). In case of non-IID, the data amongst the nodes can be split equally or unequally.
 
-Experiments are produced on MNIST, Fashion MNIST and CIFAR10 (both IID and non-IID). In case of non-IID, the data amongst the users can be split equally or unequally.
-
-Since the purpose of these experiments are to illustrate the effectiveness of the federated learning paradigm, only simple models such as MLP and CNN are used.
+Since the initial purpose of the project is to applying the filtering and optimization strategy in federated study process and do some experiments, only simple models such as MLP and CNN are supported.
 
 ## Requirments
-Install all the packages from requirments.txt
-* Python3
-* Pytorch
-* Torchvision
+* Python 3.8
+* Pytorch 1.7.1
+* Numpy 1.19.2  
 
+GPU is optinal
 ## Data
-* Download train and test datasets manually or they will be automatically downloaded from torchvision datasets.
-* Experiments are run on Mnist, Fashion Mnist and Cifar.
+* Mnist, Fashion Mnist, and Cifar are supported
+* They will be automatically downloaded from torchvision datasets, or you could download it manually
 * To use your own dataset: Move your dataset to data directory and write a wrapper on pytorch dataset class.
 
-## Running the experiments
-The baseline experiment trains the model in the conventional way.
+## Running the experiments  
+Three modes:
+* baseline: traditional deep learning
+* federated: use FedAvg to aggregate
+* federated_improved: use the proposed strategy
 
+The baseline experiment trains the model in the conventional way.
 * To run the baseline experiment with MNIST on MLP using CPU:
 ```
 python src/baseline_main.py --model=mlp --dataset=mnist --epochs=10
@@ -41,71 +44,79 @@ python src/federated_main.py --model=cnn --dataset=cifar --gpu=0 --iid=1 --epoch
 ```
 python src/federated_main.py --model=cnn --dataset=cifar --gpu=0 --iid=0 --epochs=10
 ```
+-----
+Federated_improve experiment use the proposed strategy.
+
+* To run the federated experiment with CIFAR on CNN (IID):
+```
+python src/federated_improved.py --model=cnn --dataset=cifar --gpu=0 --iid=1 --epochs=10
+```
+* To run the same experiment under non-IID condition:
+```
+python src/federated_improved.py --model=cnn --dataset=cifar --gpu=0 --iid=0 --epochs=10
+```
 
 You can change the default values of other parameters to simulate different conditions. Refer to the options section.
 
 ## Options
-The default values for various paramters parsed to the experiment are given in ```options.py```. Details are given some of those parameters:
+You could add following parameters in command-line to choose the option.
+```
+    # federated arguments (Notation for the arguments followed from paper)
+    parser.add_argument('--k', type=float, default=0.1,
+                        help="the percentage of distance in weight counting")
+    parser.add_argument('--acc_min', type=float, default=0.15,
+                        help="the minimum threshold of the accuracy")
+    parser.add_argument('--acc_drop_max', type=float, default=50,
+                        help="the maximum accuracy drop percentage threshold")
+    parser.add_argument('--epochs', type=int, default=10,
+                        help="number of rounds of training")
+    parser.add_argument('--num_users', type=int, default=100,
+                        help="number of users: K")
+    parser.add_argument('--frac', type=float, default=0.1,
+                        help='the fraction of clients: C')
+    parser.add_argument('--local_ep', type=int, default=10,
+                        help="the number of local epochs: E")
+    parser.add_argument('--local_bs', type=int, default=10,
+                        help="local batch size: B")
+    parser.add_argument('--lr', type=float, default=0.01,
+                        help='learning rate')
+    parser.add_argument('--momentum', type=float, default=0.5,
+                        help='SGD momentum (default: 0.5)')
 
-* ```--dataset:```  Default: 'mnist'. Options: 'mnist', 'fmnist', 'cifar'
-* ```--model:```    Default: 'mlp'. Options: 'mlp', 'cnn'
-* ```--gpu:```      Default: None (runs on CPU). Can also be set to the specific gpu id.
-* ```--epochs:```   Number of rounds of training.
-* ```--lr:```       Learning rate set to 0.01 by default.
-* ```--verbose:```  Detailed log outputs. Activated by default, set to 0 to deactivate.
-* ```--seed:```     Random Seed. Default set to 1.
+    # model arguments
+    parser.add_argument('--model', type=str, default='mlp', help='model name')
+    parser.add_argument('--kernel_num', type=int, default=9,
+                        help='number of each kind of kernel')
+    parser.add_argument('--kernel_sizes', type=str, default='3,4,5',
+                        help='comma-separated kernel size to \
+                        use for convolution')
+    parser.add_argument('--num_channels', type=int, default=1, help="number \
+                        of channels of imgs")
+    parser.add_argument('--norm', type=str, default='batch_norm',
+                        help="batch_norm, layer_norm, or None")
+    parser.add_argument('--num_filters', type=int, default=32,
+                        help="number of filters for conv nets -- 32 for \
+                        mini-imagenet, 64 for omiglot.")
+    parser.add_argument('--max_pool', type=str, default='True',
+                        help="Whether use max pooling rather than \
+                        strided convolutions")
 
-#### Federated Parameters
-* ```--iid:```      Distribution of data amongst users. Default set to IID. Set to 0 for non-IID.
-* ```--num_users:```Number of users. Default is 100.
-* ```--frac:```     Fraction of users to be used for federated updates. Default is 0.1.
-* ```--local_ep:``` Number of local training epochs in each user. Default is 10.
-* ```--local_bs:``` Batch size of local updates in each user. Default is 10.
-* ```--unequal:```  Used in non-iid setting. Option to split the data amongst users equally or unequally. Default set to 0 for equal splits. Set to 1 for unequal splits.
-
-## Results on MNIST
-#### Baseline Experiment:
-The experiment involves training a single model in the conventional way.
-
-Parameters: <br />
-* ```Optimizer:```    : SGD 
-* ```Learning Rate:``` 0.01
-
-```Table 1:``` Test accuracy after training for 10 epochs:
-
-| Model | Test Acc |
-| ----- | -----    |
-|  MLP  |  92.71%  |
-|  CNN  |  98.42%  |
-
-----
-
-#### Federated Experiment:
-The experiment involves training a global model in the federated setting.
-
-Federated parameters (default values):
-* ```Fraction of users (C)```: 0.1 
-* ```Local Batch size  (B)```: 10 
-* ```Local Epochs      (E)```: 10 
-* ```Optimizer            ```: SGD 
-* ```Learning Rate        ```: 0.01 <br />
-
-```Table 2:``` Test accuracy after training for 10 global epochs with:
-
-| Model |    IID   | Non-IID (equal)|
-| ----- | -----    |----            |
-|  MLP  |  88.38%  |     73.49%     |
-|  CNN  |  97.28%  |     75.94%     |
-
-
-## Further Readings
-### Papers:
-* [Federated Learning: Challenges, Methods, and Future Directions](https://arxiv.org/abs/1908.07873)
-* [Communication-Efficient Learning of Deep Networks from Decentralized Data](https://arxiv.org/abs/1602.05629)
-* [Deep Learning with Differential Privacy](https://arxiv.org/abs/1607.00133)
-
-### Blog Posts:
-* [CMU MLD Blog Post: Federated Learning: Challenges, Methods, and Future Directions](https://blog.ml.cmu.edu/2019/11/12/federated-learning-challenges-methods-and-future-directions/)
-* [Leaf: A Benchmark for Federated Settings (CMU)](https://leaf.cmu.edu/)
-* [TensorFlow Federated](https://www.tensorflow.org/federated)
-* [Google AI Blog Post](https://ai.googleblog.com/2017/04/federated-learning-collaborative.html)
+    # other arguments
+    parser.add_argument('--dataset', type=str, default='mnist', help="name \
+                        of dataset")
+    parser.add_argument('--num_classes', type=int, default=10, help="number \
+                        of classes")
+    parser.add_argument('--gpu', default=None, help="To use cuda, set \
+                        to a specific GPU ID. Default set to use CPU.")
+    parser.add_argument('--optimizer', type=str, default='sgd', help="type \
+                        of optimizer")
+    parser.add_argument('--iid', type=int, default=1,
+                        help='Default set to IID. Set to 0 for non-IID.')
+    parser.add_argument('--unequal', type=int, default=0,
+                        help='whether to use unequal data splits for  \
+                        non-i.i.d setting (use 0 for equal splits)')
+    parser.add_argument('--stopping_rounds', type=int, default=10,
+                        help='rounds of early stopping')
+    parser.add_argument('--verbose', type=int, default=1, help='verbose')
+    parser.add_argument('--seed', type=int, default=1, help='random seed')
+```
